@@ -113,7 +113,8 @@ For example:
   - Use a simple shell loop to generate multiple variants:
 
     ```bash
-    for f in input/*.jpg; do python3 pic-thon/main.py -i "$f" -d circular -s 120; done```
+    for f in input/*.jpg; do python3 pic-thon/main.py -i "$f" -d circular -s 120; done
+    ```
 
 - Experimenting interactively:
   - Try different `--size` values (grid resolution) and `--strokes` counts — larger values increase rendering time but can create more detailed or subtler strokes.
