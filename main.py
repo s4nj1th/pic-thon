@@ -344,31 +344,35 @@ def draw_spiral_strokes(
     h, w = grid.shape
     center_x, center_y = out_w / 2, out_h / 2
     max_radius = np.sqrt(center_x**2 + center_y**2)
-    num_rotations = 3
-    angles = np.linspace(0, num_rotations * 2 * np.pi, 500)
 
-    for i in range(len(angles) - 1):
-        radius1 = (angles[i] / (num_rotations * 2 * np.pi)) * max_radius
-        radius2 = (angles[i + 1] / (num_rotations * 2 * np.pi)) * max_radius
+    total_points = num_strokes * 360
 
-        x1 = center_x + radius1 * np.cos(angles[i])
-        y1 = center_y + radius1 * np.sin(angles[i])
-        x2 = center_x + radius2 * np.cos(angles[i + 1])
-        y2 = center_y + radius2 * np.sin(angles[i + 1])
+    points = []
+    for i in range(total_points):
+        angle = (i / total_points) * num_strokes * 2 * np.pi
+        radius = (i / total_points) * max_radius
 
-        if 0 <= x1 < out_w and 0 <= y1 < out_h:
-            grid_x = int((x1 / out_w) * (w - 1))
-            grid_y = int((y1 / out_h) * (h - 1))
+        x = center_x + radius * np.cos(angle)
+        y = center_y + radius * np.sin(angle)
+
+        if 0 <= x < out_w and 0 <= y < out_h:
+            grid_x = int((x / out_w) * (w - 1))
+            grid_y = int((y / out_h) * (h - 1))
             grid_x = np.clip(grid_x, 0, w - 1)
             grid_y = np.clip(grid_y, 0, h - 1)
 
             lightness = grid[grid_y, grid_x]
             thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
+            points.append((x, y, thickness))
 
+    if len(points) > 1:
+        for i in range(len(points) - 1):
+            x1, y1, t1 = points[i]
+            x2, y2, t2 = points[i + 1]
             ax.plot(
                 [x1, x2],
                 [y1, y2],
-                linewidth=thickness,
+                linewidth=(t1 + t2) / 2,
                 color=color,
                 alpha=alpha,
                 solid_capstyle="round",
