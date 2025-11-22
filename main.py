@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from PIL import Image
@@ -10,7 +11,7 @@ from PIL import Image
 
 def img_to_lightness_grid(path: str, size: int = 256) -> np.ndarray:
     img = Image.open(path).convert("L")
-    resample = Image.LANCZOS  # type: ignore[attr-defined]
+    resample = Image.LANCZOS  # type: ignore
     img = img.resize((size, size), resample)
     arr = np.asarray(img, dtype=np.float32) / 255.0
     return arr
@@ -27,6 +28,7 @@ ALLOWED_DIRECTIONS = [
     "radial",
     "circular",
     "spiral",
+    "halftone",
 ]
 
 
@@ -69,179 +71,59 @@ def render_line_art(
     ax.set_xlim(0, out_w)
     ax.set_ylim(0, out_h)
     ax.set_facecolor(background_color)
-
-    if direction == "horizontal":
-        _draw_horizontal_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
-    elif direction == "vertical":
-        _draw_vertical_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
-    elif direction == "diagonal_right":
-        _draw_diagonal_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-            right=True,
-            reverse=False,
-        )
-
-    elif direction == "diagonal_left":
-        _draw_diagonal_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-            right=False,
-            reverse=False,
-        )
-
-    elif direction == "reverse_diagonal_right":
-        _draw_diagonal_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-            right=True,
-            reverse=True,
-        )
-
-    elif direction == "reverse_diagonal_left":
-        _draw_diagonal_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-            right=False,
-            reverse=True,
-        )
-
-    elif direction == "crosshatch":
-        _draw_crosshatch(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            spacing_factor,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
-    elif direction == "radial":
-        _draw_radial_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
-    elif direction == "circular":
-        _draw_circular_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
-    elif direction == "spiral":
-        _draw_spiral_strokes(
-            ax,
-            lightness_grid,
-            num_strokes,
-            min_thick,
-            max_thick,
-            opacity_factor,
-            color,
-            out_w,
-            out_h,
-        )
-
     ax.invert_yaxis()
     ax.axis("off")
+
+    renderer_params = {
+        "ax": ax,
+        "grid": lightness_grid,
+        "num_strokes": num_strokes,
+        "min_thick": min_thick,
+        "max_thick": max_thick,
+        "spacing": spacing_factor,
+        "alpha": opacity_factor,
+        "color": color,
+        "out_w": out_w,
+        "out_h": out_h,
+    }
+
+    if direction == "horizontal":
+        draw_horizontal_strokes(**renderer_params)
+    elif direction == "vertical":
+        draw_vertical_strokes(**renderer_params)
+    elif direction == "diagonal_right":
+        draw_diagonal_strokes(**renderer_params, right=True, reverse=False)
+    elif direction == "diagonal_left":
+        draw_diagonal_strokes(**renderer_params, right=False, reverse=False)
+    elif direction == "reverse_diagonal_right":
+        draw_diagonal_strokes(**renderer_params, right=True, reverse=True)
+    elif direction == "reverse_diagonal_left":
+        draw_diagonal_strokes(**renderer_params, right=False, reverse=True)
+    elif direction == "crosshatch":
+        draw_crosshatch(**renderer_params)
+    elif direction == "radial":
+        draw_radial_strokes(**renderer_params)
+    elif direction == "circular":
+        draw_circular_strokes(**renderer_params)
+    elif direction == "spiral":
+        draw_spiral_strokes(**renderer_params)
+    elif direction == "halftone":
+        draw_halftone(**renderer_params)
+
     plt.savefig(
         out_path, bbox_inches="tight", pad_inches=0, dpi=300, facecolor=background_color
     )
     plt.close()
 
 
-def _draw_horizontal_strokes(
-    ax,
-    grid,
-    num_strokes,
-    min_thick,
-    max_thick,
-    spacing,
-    alpha,
-    color,
-    out_w,
-    out_h,
+def draw_horizontal_strokes(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
-    total_space = out_h
-    space_per_stroke = total_space / max(1, num_strokes)
+    space_per_stroke = out_h / max(1, num_strokes)
 
-    for stroke_idx in range(num_strokes):
-        y_pos = stroke_idx * space_per_stroke + space_per_stroke / 2
-
+    for idx in range(num_strokes):
+        y_pos = idx * space_per_stroke + space_per_stroke / 2
         grid_y = int((y_pos / out_h) * (h - 1))
         grid_y = np.clip(grid_y, 0, h - 1)
 
@@ -264,25 +146,14 @@ def _draw_horizontal_strokes(
             )
 
 
-def _draw_vertical_strokes(
-    ax,
-    grid,
-    num_strokes,
-    min_thick,
-    max_thick,
-    spacing,
-    alpha,
-    color,
-    out_w,
-    out_h,
+def draw_vertical_strokes(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
-    total_space = out_w
-    space_per_stroke = total_space / max(1, num_strokes)
+    space_per_stroke = out_w / max(1, num_strokes)
 
-    for stroke_idx in range(num_strokes):
-        x_pos = stroke_idx * space_per_stroke + space_per_stroke / 2
-
+    for idx in range(num_strokes):
+        x_pos = idx * space_per_stroke + space_per_stroke / 2
         grid_x = int((x_pos / out_w) * (w - 1))
         grid_x = np.clip(grid_x, 0, w - 1)
 
@@ -305,7 +176,7 @@ def _draw_vertical_strokes(
             )
 
 
-def _draw_diagonal_strokes(
+def draw_diagonal_strokes(
     ax,
     grid,
     num_strokes,
@@ -321,29 +192,19 @@ def _draw_diagonal_strokes(
 ):
     h, w = grid.shape
     max_dim = max(out_h, out_w)
-
-    diagonal_length = np.sqrt(out_w**2 + out_h**2)
     space_per_stroke = (max_dim * 2) / max(1, num_strokes)
 
     for i in range(max(1, num_strokes)):
         offset = (i - num_strokes / 2 + 0.5) * space_per_stroke
-
         points = []
+
         for t in np.linspace(0, 1, 500):
             if reverse:
-                if right:
-                    x = t * out_w + offset
-                    y = out_h - t * out_h
-                else:
-                    x = t * out_w - offset
-                    y = out_h - t * out_h
+                x = t * out_w + (offset if right else -offset)
+                y = out_h - t * out_h
             else:
-                if right:
-                    x = t * out_w + offset
-                    y = t * out_h
-                else:
-                    x = t * out_w - offset
-                    y = t * out_h
+                x = t * out_w + (offset if right else -offset)
+                y = t * out_h
 
             if 0 <= x < out_w and 0 <= y < out_h:
                 grid_x = int((x / out_w) * (w - 1))
@@ -369,13 +230,14 @@ def _draw_diagonal_strokes(
                 )
 
 
-def _draw_crosshatch(
+def draw_crosshatch(
     ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
-    _draw_diagonal_strokes(
+    half_strokes = max(1, num_strokes // 2)
+    draw_diagonal_strokes(
         ax,
         grid,
-        max(1, num_strokes // 2),
+        half_strokes,
         min_thick,
         max_thick,
         spacing,
@@ -386,10 +248,10 @@ def _draw_crosshatch(
         right=True,
         reverse=False,
     )
-    _draw_diagonal_strokes(
+    draw_diagonal_strokes(
         ax,
         grid,
-        max(1, num_strokes // 2),
+        half_strokes,
         min_thick,
         max_thick,
         spacing,
@@ -402,17 +264,16 @@ def _draw_crosshatch(
     )
 
 
-def _draw_radial_strokes(
-    ax, grid, num_strokes, min_thick, max_thick, alpha, color, out_w, out_h
+def draw_radial_strokes(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
     center_x, center_y = out_w / 2, out_h / 2
     max_radius = np.sqrt(center_x**2 + center_y**2)
-
     angle_spacing = (2 * np.pi) / max(1, num_strokes)
 
-    for stroke_idx in range(max(1, num_strokes)):
-        angle = stroke_idx * angle_spacing
+    for idx in range(max(1, num_strokes)):
+        angle = idx * angle_spacing
         radii = np.linspace(0, max_radius, 200)
 
         for i in range(len(radii) - 1):
@@ -440,17 +301,16 @@ def _draw_radial_strokes(
                 )
 
 
-def _draw_circular_strokes(
-    ax, grid, num_strokes, min_thick, max_thick, alpha, color, out_w, out_h
+def draw_circular_strokes(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
     center_x, center_y = out_w / 2, out_h / 2
     max_radius = np.sqrt(center_x**2 + center_y**2)
-
     radius_step = max_radius / max(1, num_strokes + 1)
 
-    for stroke_idx in range(1, max(1, num_strokes) + 1):
-        radius = stroke_idx * radius_step
+    for idx in range(1, max(1, num_strokes) + 1):
+        radius = idx * radius_step
         angles = np.linspace(0, 2 * np.pi, 360)
 
         for i in range(len(angles) - 1):
@@ -478,54 +338,74 @@ def _draw_circular_strokes(
                 )
 
 
-def _draw_spiral_strokes(
-    ax, grid, num_strokes, min_thick, max_thick, alpha, color, out_w, out_h
+def draw_spiral_strokes(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
     center_x, center_y = out_w / 2, out_h / 2
     max_radius = np.sqrt(center_x**2 + center_y**2)
+    num_rotations = 3
+    angles = np.linspace(0, num_rotations * 2 * np.pi, 500)
 
-    for spiral_idx in range(max(1, num_strokes)):
-        angle_offset = (spiral_idx / max(1, num_strokes)) * 2 * np.pi
+    for i in range(len(angles) - 1):
+        radius1 = (angles[i] / (num_rotations * 2 * np.pi)) * max_radius
+        radius2 = (angles[i + 1] / (num_rotations * 2 * np.pi)) * max_radius
 
-        num_rotations = 3
-        angles = np.linspace(0, num_rotations * 2 * np.pi, 500)
+        x1 = center_x + radius1 * np.cos(angles[i])
+        y1 = center_y + radius1 * np.sin(angles[i])
+        x2 = center_x + radius2 * np.cos(angles[i + 1])
+        y2 = center_y + radius2 * np.sin(angles[i + 1])
 
-        for i in range(len(angles) - 1):
-            radius1 = (angles[i] / (num_rotations * 2 * np.pi)) * max_radius
-            radius2 = (angles[i + 1] / (num_rotations * 2 * np.pi)) * max_radius
+        if 0 <= x1 < out_w and 0 <= y1 < out_h:
+            grid_x = int((x1 / out_w) * (w - 1))
+            grid_y = int((y1 / out_h) * (h - 1))
+            grid_x = np.clip(grid_x, 0, w - 1)
+            grid_y = np.clip(grid_y, 0, h - 1)
 
-            x1 = center_x + radius1 * np.cos(angles[i] + angle_offset)
-            y1 = center_y + radius1 * np.sin(angles[i] + angle_offset)
-            x2 = center_x + radius2 * np.cos(angles[i + 1] + angle_offset)
-            y2 = center_y + radius2 * np.sin(angles[i + 1] + angle_offset)
+            lightness = grid[grid_y, grid_x]
+            thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
 
-            if 0 <= x1 < out_w and 0 <= y1 < out_h:
-                grid_x = int((x1 / out_w) * (w - 1))
-                grid_y = int((y1 / out_h) * (h - 1))
-                grid_x = np.clip(grid_x, 0, w - 1)
-                grid_y = np.clip(grid_y, 0, h - 1)
-
-                lightness = grid[grid_y, grid_x]
-                thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
-
-                ax.plot(
-                    [x1, x2],
-                    [y1, y2],
-                    linewidth=thickness,
-                    color=color,
-                    alpha=alpha,
-                    solid_capstyle="round",
-                )
+            ax.plot(
+                [x1, x2],
+                [y1, y2],
+                linewidth=thickness,
+                color=color,
+                alpha=alpha,
+                solid_capstyle="round",
+            )
 
 
-def _safe_stem(path: Path) -> str:
-    return path.stem
+def draw_halftone(
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
+):
+    h, w = grid.shape
 
+    dots_per_row = max(10, num_strokes)
+    dots_per_col = int(dots_per_row * (out_h / out_w))
 
-def _ensure_output_dir(dirpath: Path) -> None:
-    if not dirpath.exists():
-        dirpath.mkdir(parents=True, exist_ok=True)
+    x_spacing = out_w / dots_per_row
+    y_spacing = out_h / dots_per_col
+
+    max_radius = min(x_spacing, y_spacing) * 0.4
+    min_radius = max_radius * 0.1
+
+    for row_idx in range(dots_per_col):
+        for col_idx in range(dots_per_row):
+            x = (col_idx + 0.5) * x_spacing
+            y = (row_idx + 0.5) * y_spacing
+
+            grid_x = int((x / out_w) * (w - 1))
+            grid_y = int((y / out_h) * (h - 1))
+            grid_x = np.clip(grid_x, 0, w - 1)
+            grid_y = np.clip(grid_y, 0, h - 1)
+
+            lightness = grid[grid_y, grid_x]
+
+            dot_radius = min_radius + (max_radius - min_radius) * (1.0 - lightness)
+
+            if dot_radius > min_radius * 1.5:
+                circle = mpatches.Circle((x, y), dot_radius, color=color, alpha=alpha)
+                ax.add_patch(circle)
 
 
 def main() -> None:
@@ -556,7 +436,7 @@ def main() -> None:
         "-d",
         "--direction",
         choices=ALLOWED_DIRECTIONS,
-        help="Direction of strokes (default: horizontal)",
+        help="Direction of strokes (default: circular)",
         default="circular",
     )
 
@@ -577,7 +457,7 @@ def main() -> None:
 
     out_dir = out_path.parent
     if out_dir and str(out_dir) != ".":
-        _ensure_output_dir(out_dir)
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     original_img = Image.open(input_path)
     orig_width, orig_height = original_img.size
