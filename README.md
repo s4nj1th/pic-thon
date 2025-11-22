@@ -16,19 +16,19 @@
         <img src="assets/01-input.jpg" alt="Screenshot 1" width="40%" style="margin: 10px;">
         <img src="assets/01-output.jpg" alt="Screenshot 2" width="40%" style="margin: 10px;">
     </div>
-    <p>Circular 100</p>
+    <p>Circular, 100 strokes, 256x256 size</p>
     <br />
     <div style="display: flex; justify-content: center; flex-wrap: wrap;">
         <img src="assets/02-input.jpg" alt="Screenshot 3" width="40%" style="margin: 10px;">
         <img src="assets/02-output.jpg" alt="Screenshot 4" width="40%" style="margin: 10px;">
     </div>
-    <p>Halftone 100</p>
+    <p>Halftone, 100 strokes, 128x128 size</p>
     <br />
     <div style="display: flex; justify-content: center; flex-wrap: wrap;">
         <img src="assets/03-input.jpg" alt="Screenshot 5" width="40%" style="margin: 10px;">
         <img src="assets/03-output.jpg" alt="Screenshot 6" width="40%" style="margin: 10px;">
     </div>
-    <p>Spiral 100</p>
+    <p>Spiral, 100 strokes, 256x256 size</p>
 </div>
 
 ## Overview
