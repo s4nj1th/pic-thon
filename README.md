@@ -91,6 +91,8 @@ Basic syntax:
   - `--size` size used to build the internal lightness grid (square). Default: 64.
   - `-s/--strokes` number of strokes to generate (controls level of detail). Default: 100.
   - `-d/--direction` pattern/direction to render (default: `circular`).
+  - `--bg` background color (default: white, `#FFFFFF`).
+  - `--fg` foreground color (default: black, `#000000`).
 
 ```bash
 python3 pic-thon/main.py -i input/01.jpg -o output/01_circular.jpg -d circular -s 100 --size 128 # circular pattern with 100 strokes and 128x128 grid
