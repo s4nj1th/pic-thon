@@ -456,7 +456,7 @@ def main() -> None:
         stem = input_path.stem
         ext = input_path.suffix
         out_path = (
-            input_path.parent / f"{stem}_output_{args.direction}_{args.strokes}{ext}"
+            input_path.parent / f"{stem}_output_{args.direction}_{args.strokes}_{args.size}x{args.size}{ext}"
         )
 
     out_dir = out_path.parent

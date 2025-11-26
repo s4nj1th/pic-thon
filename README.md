@@ -29,6 +29,12 @@
         <img src="assets/03-output.jpg" alt="Screenshot 6" width="40%" style="margin: 10px;">
     </div>
     <p>Spiral, 100 strokes, 256x256 size</p>
+    <br />
+    <div style="display: flex; justify-content: center; flex-wrap: wrap;">
+        <img src="assets/04-input.jpg" alt="Screenshot 7" width="40%" style="margin: 10px;">
+        <img src="assets/04-output.jpg" alt="Screenshot 8" width="40%" style="margin: 10px;">
+    </div>
+    <p>Diagonal Right, 100 strokes, 256x256 size</p>
 </div>
 
 ## Overview
