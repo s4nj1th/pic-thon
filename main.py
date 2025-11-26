@@ -120,25 +120,26 @@ def draw_horizontal_strokes(
     ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
-    space_per_stroke = out_h / max(1, num_strokes)
+    y_step = out_h / max(1, num_strokes)
 
-    for idx in range(num_strokes):
-        y_pos = idx * space_per_stroke + space_per_stroke / 2
-        grid_y = int((y_pos / out_h) * (h - 1))
-        grid_y = np.clip(grid_y, 0, h - 1)
+    for idx in range(max(1, num_strokes)):
+        y = idx * y_step
+        x_samples = np.linspace(0, out_w, 200)
 
-        row = grid[grid_y]
-        x = np.linspace(0, out_w, w)
+        for i in range(len(x_samples) - 1):
+            x1, x2 = x_samples[i], x_samples[i + 1]
 
-        for i in range(len(x) - 1):
-            x_idx = int((x[i] / out_w) * (w - 1))
-            x_idx = np.clip(x_idx, 0, w - 1)
-            lightness = row[x_idx]
+            grid_x = int((x1 / out_w) * (w - 1))
+            grid_y = int((y / out_h) * (h - 1))
+            grid_x = np.clip(grid_x, 0, w - 1)
+            grid_y = np.clip(grid_y, 0, h - 1)
+
+            lightness = grid[grid_y, grid_x]
             thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
 
             ax.plot(
-                [x[i], x[i + 1]],
-                [y_pos, y_pos],
+                [x1, x2],
+                [y, y],
                 linewidth=thickness,
                 color=color,
                 alpha=alpha,
@@ -150,25 +151,26 @@ def draw_vertical_strokes(
     ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     h, w = grid.shape
-    space_per_stroke = out_w / max(1, num_strokes)
+    x_step = out_w / max(1, num_strokes)
 
-    for idx in range(num_strokes):
-        x_pos = idx * space_per_stroke + space_per_stroke / 2
-        grid_x = int((x_pos / out_w) * (w - 1))
-        grid_x = np.clip(grid_x, 0, w - 1)
+    for idx in range(max(1, num_strokes)):
+        x = idx * x_step
+        y_samples = np.linspace(0, out_h, 200)
 
-        col = grid[:, grid_x]
-        y = np.linspace(0, out_h, h)
+        for i in range(len(y_samples) - 1):
+            y1, y2 = y_samples[i], y_samples[i + 1]
 
-        for i in range(len(y) - 1):
-            y_idx = int((y[i] / out_h) * (h - 1))
-            y_idx = np.clip(y_idx, 0, h - 1)
-            lightness = col[y_idx]
+            grid_x = int((x / out_w) * (w - 1))
+            grid_y = int((y1 / out_h) * (h - 1))
+            grid_x = np.clip(grid_x, 0, w - 1)
+            grid_y = np.clip(grid_y, 0, h - 1)
+
+            lightness = grid[grid_y, grid_x]
             thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
 
             ax.plot(
-                [x_pos, x_pos],
-                [y[i], y[i + 1]],
+                [x, x],
+                [y1, y2],
                 linewidth=thickness,
                 color=color,
                 alpha=alpha,
@@ -177,90 +179,72 @@ def draw_vertical_strokes(
 
 
 def draw_diagonal_strokes(
-    ax,
-    grid,
-    num_strokes,
-    min_thick,
-    max_thick,
-    spacing,
-    alpha,
-    color,
-    out_w,
-    out_h,
-    right=True,
-    reverse=False,
+    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h, right=True, reverse=False
 ):
     h, w = grid.shape
-    max_dim = max(out_h, out_w)
-    space_per_stroke = (max_dim * 2) / max(1, num_strokes)
+    diagonal_length = np.sqrt(out_w**2 + out_h**2)
+    step = diagonal_length / max(1, num_strokes)
 
-    for i in range(max(1, num_strokes)):
-        offset = (i - num_strokes / 2 + 0.5) * space_per_stroke
-        points = []
+    num_lines = int((out_w + out_h) / step) + 2
 
-        for t in np.linspace(0, 1, 500):
-            if reverse:
-                x = t * out_w + (offset if right else -offset)
-                y = out_h - t * out_h
+    for idx in range(num_lines):
+        offset = idx * step - out_h
+
+        if right:
+            if not reverse:
+                x_start, y_start = 0, offset
+                x_end, y_end = out_w, offset + out_w
             else:
-                x = t * out_w + (offset if right else -offset)
-                y = t * out_h
+                x_start, y_start = 0, out_h - offset
+                x_end, y_end = out_w, out_h - offset - out_w
+        else:
+            if not reverse:
+                x_start, y_start = out_w, offset
+                x_end, y_end = 0, offset + out_w
+            else:
+                x_start, y_start = out_w, out_h - offset
+                x_end, y_end = 0, out_h - offset - out_w
 
-            if 0 <= x < out_w and 0 <= y < out_h:
-                grid_x = int((x / out_w) * (w - 1))
-                grid_y = int((y / out_h) * (h - 1))
+        samples = np.linspace(0, 1, 200)
+
+        for i in range(len(samples) - 1):
+            t1, t2 = samples[i], samples[i + 1]
+
+            x1 = x_start + t1 * (x_end - x_start)
+            y1 = y_start + t1 * (y_end - y_start)
+            x2 = x_start + t2 * (x_end - x_start)
+            y2 = y_start + t2 * (y_end - y_start)
+
+            if 0 <= x1 < out_w and 0 <= y1 < out_h:
+                grid_x = int((x1 / out_w) * (w - 1))
+                grid_y = int((y1 / out_h) * (h - 1))
                 grid_x = np.clip(grid_x, 0, w - 1)
                 grid_y = np.clip(grid_y, 0, h - 1)
 
                 lightness = grid[grid_y, grid_x]
                 thickness = min_thick + (max_thick - min_thick) * (1.0 - lightness)
-                points.append((x, y, thickness))
 
-        if len(points) > 1:
-            for j in range(len(points) - 1):
-                x1, y1, t1 = points[j]
-                x2, y2, t2 = points[j + 1]
-                ax.plot(
-                    [x1, x2],
-                    [y1, y2],
-                    linewidth=(t1 + t2) / 2,
-                    color=color,
-                    alpha=alpha,
-                    solid_capstyle="round",
-                )
+                if 0 <= x2 < out_w and 0 <= y2 < out_h:
+                    ax.plot(
+                        [x1, x2],
+                        [y1, y2],
+                        linewidth=thickness,
+                        color=color,
+                        alpha=alpha,
+                        solid_capstyle="round",
+                    )
 
 
 def draw_crosshatch(
     ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
-    half_strokes = max(1, num_strokes // 2)
     draw_diagonal_strokes(
-        ax,
-        grid,
-        half_strokes,
-        min_thick,
-        max_thick,
-        spacing,
-        alpha * 0.7,
-        color,
-        out_w,
-        out_h,
-        right=True,
-        reverse=False,
+        ax, grid, num_strokes // 2, min_thick, max_thick,
+        spacing, alpha * 0.7, color, out_w, out_h, right=True, reverse=False
     )
     draw_diagonal_strokes(
-        ax,
-        grid,
-        half_strokes,
-        min_thick,
-        max_thick,
-        spacing,
-        alpha * 0.7,
-        color,
-        out_w,
-        out_h,
-        right=False,
-        reverse=False,
+        ax, grid, num_strokes // 2, min_thick, max_thick,
+        spacing, alpha * 0.7, color, out_w, out_h, right=False, reverse=False
     )
 
 
@@ -443,6 +427,22 @@ def main() -> None:
         help="Direction of strokes (default: circular)",
         default="circular",
     )
+    parser.add_argument(
+        "--bg",
+        "--background",
+        dest="background_color",
+        type=str,
+        help="Background color (default: white)",
+        default="white",
+    )
+    parser.add_argument(
+        "--fg",
+        "--foreground",
+        dest="foreground_color",
+        type=str,
+        help="Foreground/stroke color (default: black)",
+        default="black",
+    )
 
     args = parser.parse_args()
 
@@ -474,6 +474,8 @@ def main() -> None:
         num_strokes=args.strokes,
         direction=args.direction,
         output_resolution=(orig_width, orig_height),
+        color=args.foreground_color,
+        background_color=args.background_color,
     )
     print(f"Wrote {out_path}")
     print("Done.")
