@@ -179,7 +179,18 @@ def draw_vertical_strokes(
 
 
 def draw_diagonal_strokes(
-    ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h, right=True, reverse=False
+    ax,
+    grid,
+    num_strokes,
+    min_thick,
+    max_thick,
+    spacing,
+    alpha,
+    color,
+    out_w,
+    out_h,
+    right=True,
+    reverse=False,
 ):
     h, w = grid.shape
     diagonal_length = np.sqrt(out_w**2 + out_h**2)
@@ -239,12 +250,32 @@ def draw_crosshatch(
     ax, grid, num_strokes, min_thick, max_thick, spacing, alpha, color, out_w, out_h
 ):
     draw_diagonal_strokes(
-        ax, grid, num_strokes // 2, min_thick, max_thick,
-        spacing, alpha * 0.7, color, out_w, out_h, right=True, reverse=False
+        ax,
+        grid,
+        num_strokes // 2,
+        min_thick,
+        max_thick,
+        spacing,
+        alpha * 0.7,
+        color,
+        out_w,
+        out_h,
+        right=True,
+        reverse=False,
     )
     draw_diagonal_strokes(
-        ax, grid, num_strokes // 2, min_thick, max_thick,
-        spacing, alpha * 0.7, color, out_w, out_h, right=False, reverse=False
+        ax,
+        grid,
+        num_strokes // 2,
+        min_thick,
+        max_thick,
+        spacing,
+        alpha * 0.7,
+        color,
+        out_w,
+        out_h,
+        right=False,
+        reverse=False,
     )
 
 
@@ -456,7 +487,8 @@ def main() -> None:
         stem = input_path.stem
         ext = input_path.suffix
         out_path = (
-            input_path.parent / f"{stem}_output_{args.direction}_{args.strokes}_{args.size}x{args.size}{ext}"
+            input_path.parent
+            / f"{stem}_output_{args.direction}_{args.strokes}_{args.size}x{args.size}{ext}"
         )
 
     out_dir = out_path.parent
